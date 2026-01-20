@@ -270,6 +270,11 @@ export function initHandlers() {
     refreshAll();
     ui.detailForm.dataset.dirty = "false";
     setMultiValues(ui.detailVerificationOptions, requirement.verificationMethod || ["Analysis"]);
+    if (pendingAutoNav) {
+      const direction = pendingAutoNav;
+      pendingAutoNav = null;
+      navigateDetail(direction, { force: true });
+    }
   });
 
   ui.commentBtn.addEventListener("click", () => {
@@ -427,8 +432,8 @@ export function initHandlers() {
   if (ui.detailNext) {
     ui.detailNext.addEventListener("click", () => {
       if (ui.detailAutoSave?.checked && hasUnsavedDetailChanges()) {
+        pendingAutoNav = 1;
         ui.detailForm.requestSubmit();
-        navigateDetail(1, { force: true });
         return;
       }
       navigateDetail(1);
@@ -807,6 +812,7 @@ function parseSubsystemList(text) {
 }
 
 let pendingNavDirection = null;
+let pendingAutoNav = null;
 
 function navigateDetail(direction, options = {}) {
   if (!options.force && hasUnsavedDetailChanges()) {
