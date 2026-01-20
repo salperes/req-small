@@ -23,7 +23,7 @@ export function escapeHtml(value) {
 
 export function escapeCsv(value) {
   const text = String(value ?? "");
-  if (text.includes(",") || text.includes("\"") || text.includes("\n")) {
+  if (text.includes(",") || text.includes(";") || text.includes("\"") || text.includes("\n")) {
     return `"${text.replace(/\"/g, "\"\"")}"`;
   }
   return text;
