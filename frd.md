@@ -40,6 +40,8 @@ Yazılım modüler olarak tasarlanacaktır. İlişkisel veritabanına sahip olac
   - Regulatory
   - Interface
   - Constraint
+  - Teknik Gereksinim
+  - Çevresel Gereksinim
 * **Doğrulama Metodu:** Gereksinimler aşağıdaki metodlar ile doğrulanabilmelidir (checkbox'lı çoklu seçimli pulldown):
   - Analysis
   - Test
@@ -49,7 +51,7 @@ Yazılım modüler olarak tasarlanacaktır. İlişkisel veritabanına sahip olac
 * **Gereksinim ID Formatı:** `[SİSTEM]-[ALT SİSTEM]-[TİP]-[NUMARA]` şeklinde üretilir.
   - Sistem kodu 3 karakterdir ve proje bazlı tanımlanır.
   - Alt sistem kodu 3 karakterdir; proje bazlı düzenlenebilir. Varsayılan: GEN/RAD/DET/SFT/MKN/SNG/OPT.
-  - Gereksinim tipi kodu 2 karakterdir (Fonksiyonel/Performans/Emniyet/Güvenlik/Regülasyon/Arayüz/Kısıt/Açıklama).
+  - Gereksinim tipi kodu 2 karakterdir (Fonksiyonel/Performans/Emniyet/Güvenlik/Regülasyon/Arayüz/Kısıt/Teknik/Çevresel/Açıklama).
   - Numara 4 hanelidir ve **sistem-alt sistem-tip** kombinasyonu bazında artar.
 * **Numaralandırma Zamanı:** Gereksinim İncelemede/Onaylı durumuna geçerken otomatik atanır.
 * **Global Req ID:** Projeler arasında tekil `REQ-0000001` formatında kimliktir; import sırasında atanır ve ekranda bilgi olarak gösterilir. Projeler arası linkleme bu ID ile yapılır.

@@ -109,6 +109,8 @@ function formatRequirementType(value) {
     Regulatory: t("reqType.regulatory"),
     Interface: t("reqType.interface"),
     Constraint: t("reqType.constraint"),
+    Technical: t("reqType.technical"),
+    Environmental: t("reqType.environmental"),
   };
   return map[value] || value;
 }
