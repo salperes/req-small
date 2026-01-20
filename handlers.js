@@ -397,11 +397,11 @@ export function initHandlers() {
         req.id,
         req.specClause || "",
         req.requirement,
-        req.discipline,
-        req.status,
-        req.isInfo ? "yes" : "no",
-        req.requirementType || "",
-        Array.isArray(req.verificationMethod) ? req.verificationMethod.join(", ") : req.verificationMethod || "",
+        formatDisciplineCsv(req.isInfo ? "-" : req.discipline),
+        formatStatusCsv(req.status),
+        req.isInfo ? t("meta.yes") : t("meta.no"),
+        formatRequirementTypeCsv(req.isInfo ? "Açıklama" : req.requirementType || ""),
+        formatVerificationCsv(req.isInfo ? ["-"] : req.verificationMethod),
         req.parentId,
         req.targetQuarter,
         req.effort,
@@ -1027,6 +1027,72 @@ function setMultiDisabled(panel, disabled) {
   });
   const trigger = panel.closest(".multi-select")?.querySelector(".select-trigger");
   if (trigger) trigger.disabled = disabled;
+}
+
+function formatStatusCsv(value) {
+  const map = {
+    Draft: t("status.draft"),
+    "In Review": t("status.inReview"),
+    Approved: t("status.approved"),
+    Rejected: t("status.rejected"),
+  };
+  return map[value] || value || "";
+}
+
+function formatDisciplineCsv(value) {
+  if (!value || value === "-") return "-";
+  const map = {
+    System: t("discipline.system"),
+    Mechanical: t("discipline.mechanical"),
+    Software: t("discipline.software"),
+    Electronics: t("discipline.electronics"),
+    Automation: t("discipline.automation"),
+    Optics: t("discipline.optics"),
+    Other: t("discipline.other"),
+  };
+  return map[value] || value;
+}
+
+function formatRequirementTypeCsv(value) {
+  if (
+    value === "Açıklama" ||
+    value === "AÃ§Ä±klama" ||
+    value === "AÃƒÂ§Ã„Â±klama" ||
+    value === "Aciklama"
+  )
+    return t("reqType.info");
+  const map = {
+    Functional: t("reqType.functional"),
+    Performance: t("reqType.performance"),
+    Safety: t("reqType.safety"),
+    Security: t("reqType.security"),
+    Regulatory: t("reqType.regulatory"),
+    Interface: t("reqType.interface"),
+    Constraint: t("reqType.constraint"),
+    Technical: t("reqType.technical"),
+    Environmental: t("reqType.environmental"),
+  };
+  return map[value] || value || "";
+}
+
+function formatVerificationCsv(values) {
+  if (!values) return "";
+  const list = Array.isArray(values)
+    ? values
+    : String(values)
+        .split(",")
+        .map((item) => item.trim())
+        .filter(Boolean);
+  if (!list.length) return "";
+  const map = {
+    Analysis: t("verification.analysis"),
+    Test: t("verification.test"),
+    Inspection: t("verification.inspection"),
+    Demonstration: t("verification.demonstration"),
+    "Certificate of Conformity": t("verification.coc"),
+    "-": t("meta.dash"),
+  };
+  return list.map((value) => map[value] || value).join(", ");
 }
 
 function getVisibleRequirementOrder() {
