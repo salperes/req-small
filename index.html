@@ -1,0 +1,839 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title data-i18n="app.title">RMS - Requirements Management Studio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="bg-orbit"></div>
+    <header class="topbar">
+      <div class="brand">
+        <span class="brand-mark">RMS</span>
+        <div>
+          <div class="brand-title" data-i18n="brand.title">Requirements Management Studio</div>
+          <div class="brand-sub" id="brandSub"></div>
+        </div>
+      </div>
+      <div class="tabs top-tabs">
+        <button class="tab active" data-tab="import" data-i18n="tab.import">Import</button>
+        <button class="tab" data-tab="new-requirement" data-i18n="tab.newRequirement">New Requirement</button>
+        <button class="tab" data-tab="library" data-i18n="tab.library">Requirement Library</button>
+        <button class="tab" data-tab="traceability" data-i18n="tab.traceability">Traceability</button>
+        <button class="tab" data-tab="prioritization" data-i18n="tab.prioritization">Prioritization</button>
+        <button class="tab" data-tab="roadmap" data-i18n="tab.roadmap">Roadmap</button>
+        <button class="tab" data-tab="baselines" data-i18n="tab.baselines">Baselines</button>
+        <button id="adminTab" class="tab hidden" data-tab="admin" data-i18n="tab.admin">Admin</button>
+      </div>
+      <div class="top-actions">
+        <div class="user-meta">
+          <div id="currentUser" class="muted" data-i18n="auth.notSignedIn">Not signed in</div>
+          <div class="row">
+            <select id="projectSelect"></select>
+            <button id="logoutBtn" class="ghost" data-i18n="auth.logout">Logout</button>
+          </div>
+        </div>
+        <div class="lang-switch">
+          <label for="languageSelect" class="muted" data-i18n="lang.label">Language</label>
+          <select id="languageSelect">
+            <option value="en">English</option>
+            <option value="tr">Türkçe</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <main class="shell">
+      <section class="content">
+        <section id="import" class="panel hero tab-panel active" data-panel="import">
+          <div class="hero-copy">
+            <h1 data-i18n="import.title">Ingest specifications, structure them fast.</h1>
+            <p data-i18n="import.subtitle">
+              Paste clauses from PDF/Word exports. The parser will detect clause numbering and turn each line into a requirement entry.
+            </p>
+            <div class="hero-pill" data-i18n="import.pill">Supports ISO / MIL-STD style numbering</div>
+          </div>
+          <div class="hero-input">
+            <label for="importText" data-i18n="import.pasteLabel">Paste specification text</label>
+            <textarea
+              id="importText"
+              rows="8"
+              placeholder="3.2.1 The system shall..."
+              data-i18n-placeholder="import.pastePlaceholder"
+            ></textarea>
+            <div class="row">
+              <button id="importBtn" class="primary" data-i18n="import.importBtn">Import Requirements</button>
+              <span id="importStatus" class="muted"></span>
+            </div>
+            <div class="row">
+              <label data-i18n="import.reqifFile">
+                ReqIF File
+                <input id="reqifFile" type="file" accept=".reqif,.xml" />
+              </label>
+              <button id="reqifImportBtn" class="ghost" data-i18n="import.reqifImportBtn">Import ReqIF</button>
+              <button id="reqifExportBtn" class="ghost" data-i18n="import.reqifExportBtn">Export ReqIF</button>
+            </div>
+            <div class="row">
+              <label data-i18n="import.csvFile">
+                CSV File
+                <input id="csvFile" type="file" accept=".csv" />
+              </label>
+              <button id="csvImportBtn" class="ghost" data-i18n="import.csvImportBtn">Import CSV</button>
+              <button id="csvTemplateBtn" class="ghost" data-i18n="import.csvTemplateBtn">Download CSV Template</button>
+            </div>
+          </div>
+        </section>
+
+        <section id="new-requirement" class="tab-panel" data-panel="new-requirement">
+          <div class="grid two new-req-grid">
+            <div class="panel">
+              <div class="panel-head">
+                <h2 class="panel-title">
+                  <span data-i18n="newReq.title">New Requirement</span>
+                  <span id="newReqProjectName" class="project-name"></span>
+                </h2>
+                <div class="template-row">
+                  <button class="chip" data-template-key="template.userStory.value" data-i18n="template.userStory.label">
+                    User Story
+                  </button>
+                  <button class="chip" data-template-key="template.systemShall.value" data-i18n="template.systemShall.label">
+                    System Shall
+                  </button>
+                  <button
+                    class="chip"
+                    data-template-key="template.componentShall.value"
+                    data-i18n="template.componentShall.label"
+                  >
+                    Component Shall
+                  </button>
+                </div>
+              </div>
+              <form id="createForm" class="form">
+                <div class="row three">
+                  <label>
+                    <span data-i18n="field.id">ID</span>
+                    <input
+                      id="createId"
+                      type="text"
+                      placeholder="Auto-generated"
+                      data-i18n-placeholder="field.autoGenerated"
+                      disabled
+                    />
+                  </label>
+                  <label>
+                    <span data-i18n="field.globalReqId">Global Req ID</span>
+                    <input id="createGlobalId" type="text" placeholder="Auto-generated" disabled />
+                  </label>
+                  <label>
+                    <span data-i18n="field.specClause">Spec Clause</span>
+                    <input
+                      id="createClause"
+                      type="text"
+                      placeholder="3.2.1"
+                      data-i18n-placeholder="field.specClausePlaceholder"
+                    />
+                  </label>
+                  <label class="checkbox">
+                    <input id="createInfo" type="checkbox" />
+                    <span data-i18n="field.informationalOnly">Informational Only</span>
+                  </label>
+                </div>
+                <label>
+                  <span data-i18n="field.title">Title</span>
+                  <textarea id="createTitle" rows="4" required></textarea>
+                </label>
+                <label>
+                  <span data-i18n="field.rationale">Rationale</span>
+                  <input id="createDesc" type="text" />
+                </label>
+                <div class="row two">
+                  <label class="full">
+                    <span data-i18n="field.derivedFrom">Derived From</span>
+                    <div class="select-wrap">
+                      <button
+                        id="createParentSelect"
+                        type="button"
+                        class="select-trigger"
+                        data-placeholder="None"
+                        data-i18n-placeholder="select.none"
+                      >
+                        None
+                      </button>
+                      <div class="select-options hidden" data-select="createParent"></div>
+                      <input id="createParent" type="hidden" value="" />
+                    </div>
+                  </label>
+                </div>
+                <div class="row three">
+                  <label>
+                    <span data-i18n="field.subsystem">Subsystem</span>
+                    <select id="createSubsystem"></select>
+                  </label>                  <label>
+                    <span data-i18n="field.discipline">Discipline</span>
+                    <select id="createDiscipline">
+                      <option value="System" data-i18n="discipline.system">System</option>
+                      <option value="Mechanical" data-i18n="discipline.mechanical">Mechanical</option>
+                      <option value="Software" data-i18n="discipline.software">Software</option>
+                      <option value="Electronics" data-i18n="discipline.electronics">Electronics</option>
+                      <option value="Automation" data-i18n="discipline.automation">Automation</option>
+                      <option value="Optics" data-i18n="discipline.optics">Optics</option>
+                      <option value="Other" data-i18n="discipline.other">Other</option>
+                      <option value="-" data-i18n="meta.dash">-</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span data-i18n="field.requirementType">Requirement Type</span>
+                    <select id="createRequirementType">
+                      <option value="Functional" data-i18n="reqType.functional">Functional</option>
+                      <option value="Performance" data-i18n="reqType.performance">Performance</option>
+                      <option value="Safety" data-i18n="reqType.safety">Safety</option>
+                      <option value="Security" data-i18n="reqType.security">Security</option>
+                      <option value="Regulatory" data-i18n="reqType.regulatory">Regulatory</option>
+                      <option value="Interface" data-i18n="reqType.interface">Interface</option>
+                      <option value="Constraint" data-i18n="reqType.constraint">Constraint</option>
+                      <option value="Açıklama" data-i18n="reqType.info">Explanation</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span data-i18n="field.verificationMethod">Verification Method</span>
+                    <div class="multi-select">
+                      <button
+                        id="createVerificationTrigger"
+                        type="button"
+                        class="select-trigger"
+                        data-placeholder="Select..."
+                        data-i18n-placeholder="select.choose"
+                      ></button>
+                      <div class="multi-options hidden" data-multi="createVerification">
+                        <label class="multi-option">
+                          <input type="checkbox" value="Analysis" />
+                          <span data-i18n="verification.analysis">Analysis</span>
+                        </label>
+                        <label class="multi-option">
+                          <input type="checkbox" value="Test" />
+                          <span data-i18n="verification.test">Test</span>
+                        </label>
+                        <label class="multi-option">
+                          <input type="checkbox" value="Inspection" />
+                          <span data-i18n="verification.inspection">Inspection</span>
+                        </label>
+                        <label class="multi-option">
+                          <input type="checkbox" value="Demonstration" />
+                          <span data-i18n="verification.demonstration">Demonstration</span>
+                        </label>
+                        <label class="multi-option">
+                          <input type="checkbox" value="Certificate of Conformity" />
+                          <span data-i18n="verification.coc">Certificate of Conformity</span>
+                        </label>
+                        <label class="multi-option">
+                          <input type="checkbox" value="-" />
+                          <span data-i18n="meta.dash">-</span>
+                        </label>
+                      </div>
+                      <input id="createVerificationMethod" type="hidden" value="" />
+                    </div>
+                  </label>
+                </div>
+                <div class="row two">
+                  <label>
+                    <span data-i18n="field.standards">Standards (comma separated)</span>
+                    <input
+                      id="createStandards"
+                      type="text"
+                      placeholder="ISO 9001, MIL-STD-810"
+                      data-i18n-placeholder="field.standardsPlaceholder"
+                    />
+                  </label>
+                  <label>
+                    <span data-i18n="field.referenceDocs">Reference Docs (comma separated)</span>
+                    <input
+                      id="createDocs"
+                      type="text"
+                      placeholder="DOC-12, SPEC-7"
+                      data-i18n-placeholder="field.referenceDocsPlaceholder"
+                    />
+                  </label>
+                </div>
+                <div class="row three">
+                  <label>
+                    <span data-i18n="field.workflowStatus">Workflow Status</span>
+                    <select id="createStatus">
+                      <option value="Draft" data-i18n="status.draft">Draft</option>
+                      <option value="In Review" data-i18n="status.inReview">In Review</option>
+                      <option value="Approved" data-i18n="status.approved">Approved</option>
+                      <option value="Rejected" data-i18n="status.rejected">Rejected</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span data-i18n="field.targetQuarter">Target Phase</span>
+                    <select id="createQuarter">
+                      <option value="Faz1">Faz1</option>
+                      <option value="Faz2">Faz2</option>
+                      <option value="Faz3">Faz3</option>
+                      <option value="Faz4">Faz4</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span data-i18n="field.effortPoints">Effort Points</span>
+                    <input id="createEffort" type="number" min="1" max="20" value="5" />
+                  </label>
+                </div>
+                <button class="primary" type="submit" data-i18n="newReq.createBtn">Create Requirement</button>
+              </form>
+            </div>
+            <div class="panel">
+              <div class="panel-head">
+                <h2 class="panel-title">
+                  <span data-i18n="library.title">Requirement Library</span>
+                  <span id="newLibraryProjectName" class="project-name"></span>
+                </h2>
+                <div class="row inline">
+                  <input
+                    id="newSearchReq"
+                    type="search"
+                    placeholder="Search by ID or text"
+                    data-i18n-placeholder="library.searchPlaceholder"
+                  />
+                  <select id="newFilterDiscipline">
+                    <option value="" data-i18n="filter.allDisciplines">All Disciplines</option>
+                    <option value="System" data-i18n="discipline.system">System</option>
+                    <option value="Mechanical" data-i18n="discipline.mechanical">Mechanical</option>
+                    <option value="Software" data-i18n="discipline.software">Software</option>
+                    <option value="Electronics" data-i18n="discipline.electronics">Electronics</option>
+                    <option value="Automation" data-i18n="discipline.automation">Automation</option>
+                    <option value="Optics" data-i18n="discipline.optics">Optics</option>
+                    <option value="Other" data-i18n="discipline.other">Other</option>
+                  </select>
+                  <select id="newFilterStatus">
+                    <option value="" data-i18n="filter.allStatuses">All Statuses</option>
+                    <option value="Draft" data-i18n="status.draft">Draft</option>
+                    <option value="In Review" data-i18n="status.inReview">In Review</option>
+                    <option value="Approved" data-i18n="status.approved">Approved</option>
+                    <option value="Rejected" data-i18n="status.rejected">Rejected</option>
+                  </select>
+                  <select id="newFilterInfo">
+                    <option value="" data-i18n="filter.allTypes">All Types</option>
+                    <option value="info" data-i18n="filter.infoOnly">Informational Only</option>
+                    <option value="non-info" data-i18n="filter.nonInfo">Not Informational</option>
+                  </select>
+                  <button id="newExportCsv" class="ghost" data-i18n="library.exportCsv">Export CSV</button>
+                </div>
+              </div>
+              <div id="newReqTree" class="tree"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="library" class="tab-panel" data-panel="library">
+          <div class="grid two library-grid">
+            <div class="panel detail-panel">
+              <div class="panel-head">
+                <h2 class="panel-title">
+                  <span data-i18n="library.title">Requirement Library</span>
+                  <span id="libraryProjectName" class="project-name"></span>
+                </h2>
+                <div class="row inline">
+                  <input
+                    id="searchReq"
+                    type="search"
+                    placeholder="Search by ID or text"
+                    data-i18n-placeholder="library.searchPlaceholder"
+                  />
+                  <select id="filterDiscipline">
+                    <option value="" data-i18n="filter.allDisciplines">All Disciplines</option>
+                    <option value="System" data-i18n="discipline.system">System</option>
+                    <option value="Mechanical" data-i18n="discipline.mechanical">Mechanical</option>
+                    <option value="Software" data-i18n="discipline.software">Software</option>
+                    <option value="Electronics" data-i18n="discipline.electronics">Electronics</option>
+                    <option value="Automation" data-i18n="discipline.automation">Automation</option>
+                    <option value="Optics" data-i18n="discipline.optics">Optics</option>
+                    <option value="Other" data-i18n="discipline.other">Other</option>
+                  </select>
+                  <select id="filterStatus">
+                    <option value="" data-i18n="filter.allStatuses">All Statuses</option>
+                    <option value="Draft" data-i18n="status.draft">Draft</option>
+                    <option value="In Review" data-i18n="status.inReview">In Review</option>
+                    <option value="Approved" data-i18n="status.approved">Approved</option>
+                    <option value="Rejected" data-i18n="status.rejected">Rejected</option>
+                  </select>
+                  <select id="filterInfo">
+                    <option value="" data-i18n="filter.allTypes">All Types</option>
+                    <option value="info" data-i18n="filter.infoOnly">Informational Only</option>
+                    <option value="non-info" data-i18n="filter.nonInfo">Not Informational</option>
+                  </select>
+                  <button id="exportCsv" class="ghost" data-i18n="library.exportCsv">Export CSV</button>
+                </div>
+              </div>
+              <div id="reqTree" class="tree"></div>
+            </div>
+
+            <div class="panel">
+              <div class="panel-head">
+                <h2 class="panel-title">
+                  <span data-i18n="detail.title">Requirement Detail</span>
+                  <span id="detailProjectName" class="project-name"></span>
+                </h2>
+                <span id="detailStatus" class="muted" data-i18n="detail.selectPrompt">Select a requirement</span>
+              </div>
+              <form id="detailForm" class="form">
+                <div class="row three">
+                  <label>
+                    <span data-i18n="field.id">ID</span>
+                    <input id="detailId" type="text" disabled />
+                  </label>
+                  <label>
+                    <span data-i18n="field.globalReqId">Global Req ID</span>
+                    <input id="detailGlobalId" type="text" disabled />
+                  </label>
+                  <label>
+                    <span data-i18n="field.specClause">Spec Clause</span>
+                    <input id="detailClause" type="text" placeholder="3.2.1" data-i18n-placeholder="field.specClausePlaceholder" />
+                  </label>
+                  <label class="checkbox">
+                    <input id="detailInfo" type="checkbox" />
+                    <span data-i18n="field.informationalOnly">Informational Only</span>
+                  </label>
+                </div>
+                <label>
+                  <span data-i18n="field.title">Title</span>
+                  <textarea id="detailTitle" rows="4"></textarea>
+                </label>
+                <label>
+                  <span data-i18n="field.rationale">Rationale</span>
+                  <input id="detailDesc" type="text" />
+                </label>
+                <div class="row two">
+                  <label class="full">
+                    <span data-i18n="field.parentRequirement">Parent Requirement</span>
+                    <div class="select-wrap">
+                      <button
+                        id="detailParentSelect"
+                        type="button"
+                        class="select-trigger"
+                        data-placeholder="None"
+                        data-i18n-placeholder="select.none"
+                      >
+                        None
+                      </button>
+                      <div class="select-options hidden" data-select="detailParent"></div>
+                      <input id="detailParent" type="hidden" value="" />
+                    </div>
+                  </label>
+                </div>
+                <div class="row three">
+                  <label>
+                    <span data-i18n="field.subsystem">Subsystem</span>
+                    <select id="detailSubsystem"></select>
+                  </label>
+                  <label>
+                    <span data-i18n="field.discipline">Discipline</span>
+                    <select id="detailDiscipline">
+                      <option value="System" data-i18n="discipline.system">System</option>
+                      <option value="Mechanical" data-i18n="discipline.mechanical">Mechanical</option>
+                      <option value="Software" data-i18n="discipline.software">Software</option>
+                      <option value="Electronics" data-i18n="discipline.electronics">Electronics</option>
+                      <option value="Automation" data-i18n="discipline.automation">Automation</option>
+                      <option value="Optics" data-i18n="discipline.optics">Optics</option>
+                      <option value="Other" data-i18n="discipline.other">Other</option>
+                      <option value="-" data-i18n="meta.dash">-</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span data-i18n="field.requirementType">Requirement Type</span>
+                    <select id="detailRequirementType">
+                      <option value="Functional" data-i18n="reqType.functional">Functional</option>
+                      <option value="Performance" data-i18n="reqType.performance">Performance</option>
+                      <option value="Safety" data-i18n="reqType.safety">Safety</option>
+                      <option value="Security" data-i18n="reqType.security">Security</option>
+                      <option value="Regulatory" data-i18n="reqType.regulatory">Regulatory</option>
+                      <option value="Interface" data-i18n="reqType.interface">Interface</option>
+                      <option value="Constraint" data-i18n="reqType.constraint">Constraint</option>
+                      <option value="Açıklama" data-i18n="reqType.info">Explanation</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span data-i18n="field.verificationMethod">Verification Method</span>
+                    <div class="multi-select">
+                      <button
+                        id="detailVerificationTrigger"
+                        type="button"
+                        class="select-trigger"
+                        data-placeholder="Select..."
+                        data-i18n-placeholder="select.choose"
+                      ></button>
+                      <div class="multi-options hidden" data-multi="detailVerification">
+                        <label class="multi-option">
+                          <input type="checkbox" value="Analysis" />
+                          <span data-i18n="verification.analysis">Analysis</span>
+                        </label>
+                        <label class="multi-option">
+                          <input type="checkbox" value="Test" />
+                          <span data-i18n="verification.test">Test</span>
+                        </label>
+                        <label class="multi-option">
+                          <input type="checkbox" value="Inspection" />
+                          <span data-i18n="verification.inspection">Inspection</span>
+                        </label>
+                        <label class="multi-option">
+                          <input type="checkbox" value="Demonstration" />
+                          <span data-i18n="verification.demonstration">Demonstration</span>
+                        </label>
+                        <label class="multi-option">
+                          <input type="checkbox" value="Certificate of Conformity" />
+                          <span data-i18n="verification.coc">Certificate of Conformity</span>
+                        </label>
+                        <label class="multi-option">
+                          <input type="checkbox" value="-" />
+                          <span data-i18n="meta.dash">-</span>
+                        </label>
+                      </div>
+                      <input id="detailVerificationMethod" type="hidden" value="" />
+                    </div>
+                  </label>
+                </div>
+                <div class="row two">
+                  <label>
+                    <span data-i18n="field.standards">Standards (comma separated)</span>
+                    <input
+                      id="detailStandards"
+                      type="text"
+                      placeholder="ISO 9001, MIL-STD-810"
+                      data-i18n-placeholder="field.standardsPlaceholder"
+                    />
+                  </label>
+                  <label>
+                    <span data-i18n="field.referenceDocs">Reference Docs (comma separated)</span>
+                    <input
+                      id="detailDocs"
+                      type="text"
+                      placeholder="DOC-12, SPEC-7"
+                      data-i18n-placeholder="field.referenceDocsPlaceholder"
+                    />
+                  </label>
+                </div>
+                <div class="row three">
+                  <label>
+                    <span data-i18n="field.workflowStatus">Workflow Status</span>
+                    <select id="detailStatusSelect">
+                      <option value="Draft" data-i18n="status.draft">Draft</option>
+                      <option value="In Review" data-i18n="status.inReview">In Review</option>
+                      <option value="Approved" data-i18n="status.approved">Approved</option>
+                      <option value="Rejected" data-i18n="status.rejected">Rejected</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span data-i18n="field.targetQuarter">Target Phase</span>
+                    <select id="detailQuarter">
+                      <option value="Faz1">Faz1</option>
+                      <option value="Faz2">Faz2</option>
+                      <option value="Faz3">Faz3</option>
+                      <option value="Faz4">Faz4</option>
+                    </select>
+                  </label>
+                  <label>
+                    <span data-i18n="field.effortPoints">Effort Points</span>
+                    <input id="detailEffort" type="number" min="1" max="20" />
+                  </label>
+                </div>
+                <div class="row detail-actions">
+                  <div class="row">
+                    <button id="detailPrev" class="ghost" type="button" data-i18n="detail.prevBtn">Previous</button>
+                    <button id="detailNext" class="ghost" type="button" data-i18n="detail.nextBtn">Next</button>
+                    <label class="checkbox">
+                      <input id="detailAutoSave" type="checkbox" />
+                      <span data-i18n="detail.autoSave">Auto Save</span>
+                    </label>
+                  </div>
+                  <button class="primary" type="submit" data-i18n="detail.saveBtn">Save Changes</button>
+                </div>
+              </form>
+            </div>
+          </div>
+          <div class="panel library-comments">
+            <div class="panel-head">
+              <h2 data-i18n="comments.title">Comments &amp; Versions</h2>
+              <span id="suspectBadge" class="badge warning hidden" data-i18n="badge.suspect">Suspect</span>
+            </div>
+            <div class="comments">
+              <div id="commentList" class="comment-list muted" data-i18n="comments.none">No comments yet.</div>
+              <div class="row">
+                <input
+                  id="commentInput"
+                  type="text"
+                  placeholder="Add comment with @mention"
+                  data-i18n-placeholder="comments.placeholder"
+                />
+                <button id="commentBtn" class="ghost" data-i18n="comments.postBtn">Post</button>
+              </div>
+            </div>
+            <div class="versions">
+              <h3 data-i18n="versions.title">Version History</h3>
+              <div id="versionList" class="version-list muted" data-i18n="versions.none">No version history yet.</div>
+            </div>
+          </div>
+        </section>
+
+        <section id="traceability" class="panel tab-panel" data-panel="traceability">
+          <div class="panel-head">
+            <h2 data-i18n="trace.title">Traceability Matrix</h2>
+            <span class="muted" data-i18n="trace.subtitle">Link requirements to design docs and tests.</span>
+          </div>
+          <div class="grid two">
+            <div class="form">
+              <label>
+                <span data-i18n="trace.requirement">Requirement</span>
+                <select id="traceReqSelect"></select>
+              </label>
+              <label>
+                <span data-i18n="trace.designDocs">Design Docs (comma separated)</span>
+                <input
+                  id="traceDesign"
+                  type="text"
+                  placeholder="DOC-12, SYS-ARCH-04"
+                  data-i18n-placeholder="trace.designPlaceholder"
+                />
+              </label>
+              <label>
+                <span data-i18n="trace.tests">Tests (comma separated)</span>
+                <input
+                  id="traceTests"
+                  type="text"
+                  placeholder="TST-104, TST-220"
+                  data-i18n-placeholder="trace.testsPlaceholder"
+                />
+              </label>
+              <button id="traceSave" class="primary" type="button" data-i18n="trace.saveBtn">Save Links</button>
+            </div>
+            <div>
+              <table class="matrix">
+                <thead>
+                  <tr>
+                    <th data-i18n="trace.requirement">Requirement</th>
+                    <th data-i18n="trace.designDocsHeader">Design Docs</th>
+                    <th data-i18n="trace.testsHeader">Tests</th>
+                  </tr>
+                </thead>
+                <tbody id="matrixBody"></tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <section id="prioritization" class="panel tab-panel" data-panel="prioritization">
+          <div class="panel-head">
+            <h2 data-i18n="prio.title">Prioritization</h2>
+            <span class="muted" data-i18n="prio.subtitle">MoSCoW, RICE, or WSJF scoring.</span>
+          </div>
+          <div class="grid two">
+            <div class="form">
+              <label>
+                <span data-i18n="prio.requirement">Requirement</span>
+                <select id="prioReqSelect"></select>
+              </label>
+              <label>
+                <span data-i18n="prio.model">Model</span>
+                <select id="prioModel">
+                  <option value="moscow" data-i18n="prio.model.moscow">MoSCoW</option>
+                  <option value="rice" data-i18n="prio.model.rice">RICE</option>
+                  <option value="wsjf" data-i18n="prio.model.wsjf">WSJF</option>
+                </select>
+              </label>
+              <div id="prioFields"></div>
+              <button id="prioSave" class="primary" type="button" data-i18n="prio.saveBtn">Save Score</button>
+            </div>
+            <div>
+              <div class="scoreboard" id="prioBoard"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="roadmap" class="panel tab-panel" data-panel="roadmap">
+          <div class="panel-head">
+            <h2 data-i18n="roadmap.title">Roadmap</h2>
+            <span class="muted" data-i18n="roadmap.subtitle">Quarterly plan based on effort points.</span>
+          </div>
+          <div id="roadmapGrid" class="roadmap-grid"></div>
+        </section>
+
+        <section id="baselines" class="panel tab-panel" data-panel="baselines">
+          <div class="panel-head">
+            <h2 data-i18n="baselines.title">Baselines</h2>
+            <span class="muted" data-i18n="baselines.subtitle">Freeze snapshots of the current requirements.</span>
+          </div>
+          <div class="row">
+            <input
+              id="baselineName"
+              type="text"
+              placeholder="Baseline name"
+              data-i18n-placeholder="baselines.namePlaceholder"
+            />
+            <button id="baselineCreate" class="primary" data-i18n="baselines.createBtn">Create Baseline</button>
+          </div>
+          <div id="baselineList" class="baseline-list muted"></div>
+        </section>
+
+        <section id="admin" class="panel tab-panel" data-panel="admin">
+          <div class="panel-head">
+            <h2 data-i18n="admin.title">Admin Center</h2>
+            <span class="muted" data-i18n="admin.subtitle">Manage users, projects, and access rights.</span>
+          </div>
+          <div class="row admin-actions">
+            <button id="saveExport" class="ghost" data-i18n="admin.exportJson">Export JSON</button>
+            <button id="adminImportJson" class="ghost" data-i18n="admin.importJson">Import JSON</button>
+            <input id="adminImportFile" class="hidden" type="file" accept=".json,application/json" />
+            <label class="checkbox">
+              <input id="adminImportBackup" type="checkbox" checked />
+              <span data-i18n="admin.importBackup">Create backup before import</span>
+            </label>
+            <button id="resetData" class="ghost danger" data-i18n="admin.reset">Reset</button>
+            <span id="adminImportStatus" class="muted"></span>
+          </div>
+          <div class="grid two">
+            <div id="adminUserSection" class="form">
+              <h3 data-i18n="admin.createUser">Create User</h3>
+              <label>
+                <span data-i18n="field.name">Name</span>
+                <input id="adminUserName" type="text" />
+              </label>
+              <label>
+                <span data-i18n="field.email">Email</span>
+                <input id="adminUserEmail" type="email" />
+              </label>
+              <label>
+                <span data-i18n="field.password">Password</span>
+                <input id="adminUserPassword" type="password" />
+              </label>
+              <label>
+                <span data-i18n="field.role">Role</span>
+                <select id="adminUserRole">
+                  <option value="user" data-i18n="role.user">User</option>
+                  <option value="supervisor" data-i18n="role.supervisor">Supervisor</option>
+                  <option value="admin" data-i18n="role.admin">Admin</option>
+                </select>
+              </label>
+              <button id="adminCreateUser" class="primary" type="button" data-i18n="admin.createUserBtn">
+                Create User
+              </button>
+            </div>
+            <div id="adminProjectSection" class="form">
+              <h3 data-i18n="admin.createProject">Create Project</h3>
+              <label>
+                <span data-i18n="field.projectName">Project Name</span>
+                <input id="adminProjectName" type="text" />
+              </label>
+              <label>
+                <span data-i18n="field.systemCode">System Code (3 chars)</span>
+                <input id="adminProjectSystemCode" type="text" maxlength="3" placeholder="SYS" />
+              </label>
+              <label>
+                <span data-i18n="field.subsystems">Subsystems</span>
+                <textarea
+                  id="adminProjectSubsystems"
+                  rows="4"
+                  placeholder="GEN - Genel Sistem Gereksinimleri..."
+                ></textarea>
+              </label>
+              <label>
+                <span data-i18n="field.customer">Customer</span>
+                <input
+                  id="adminProjectCustomer"
+                  type="text"
+                  placeholder="Client / customer name"
+                  data-i18n-placeholder="field.customerPlaceholder"
+                />
+              </label>
+              <div class="row two">
+                <label>
+                  <span data-i18n="field.startDate">Start Date</span>
+                  <input id="adminProjectStart" type="date" />
+                </label>
+                <label>
+                  <span data-i18n="field.dueDate">Due Date</span>
+                  <input id="adminProjectDue" type="date" />
+                </label>
+              </div>
+              <label>
+                <span data-i18n="field.description">Description</span>
+                <textarea id="adminProjectDesc" rows="3"></textarea>
+              </label>
+              <button id="adminCreateProject" class="primary" type="button" data-i18n="admin.createProjectBtn">
+                Create Project
+              </button>
+            </div>
+          </div>
+          <div class="admin-projects">
+            <h3 data-i18n="admin.projectCatalog">Project Catalog</h3>
+            <p class="muted" data-i18n="admin.projectCatalogHint">Edit existing projects and update their attributes.</p>
+            <div id="adminProjectList" class="project-list muted"></div>
+          </div>
+          <div class="grid two">
+            <div id="adminAssignSection" class="form">
+              <h3 data-i18n="admin.assignUser">Assign User to Project</h3>
+              <label>
+                <span data-i18n="field.user">User</span>
+                <select id="adminAssignUser"></select>
+              </label>
+              <label>
+                <span data-i18n="field.project">Project</span>
+                <select id="adminAssignProject"></select>
+              </label>
+              <label>
+                <span data-i18n="field.role">Role</span>
+                <select id="adminAssignRole">
+                  <option value="editor" data-i18n="role.editor">Editor</option>
+                  <option value="viewer" data-i18n="role.viewer">Viewer</option>
+                </select>
+              </label>
+              <button id="adminAssignBtn" class="primary" type="button" data-i18n="admin.assignBtn">Assign</button>
+            </div>
+            <div>
+              <h3 data-i18n="admin.accessOverview">Access Overview</h3>
+              <div id="adminAccessList" class="comment-list muted"></div>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <div id="authModal" class="auth-modal">
+      <div class="auth-card">
+        <h2 data-i18n="auth.signIn">Sign in</h2>
+        <p class="muted" data-i18n="auth.signInHint">Use your credentials to access your projects.</p>
+        <label>
+          <span data-i18n="field.email">Email</span>
+          <input id="loginEmail" type="email" />
+        </label>
+        <label>
+          <span data-i18n="field.password">Password</span>
+          <input id="loginPassword" type="password" />
+        </label>
+        <button id="loginBtn" class="primary" type="button" data-i18n="auth.loginBtn">Login</button>
+        <div id="loginStatus" class="muted"></div>
+        <button id="loginResetBtn" class="ghost danger" type="button" data-i18n="auth.resetLocal">
+          Reset Local Data
+        </button>
+      </div>
+    </div>
+
+    <div id="unsavedModal" class="auth-modal hidden">
+      <div class="auth-card">
+        <h2 data-i18n="unsaved.title">Unsaved changes</h2>
+        <p class="muted" data-i18n="unsaved.message">You have unsaved changes. What would you like to do?</p>
+        <div class="row">
+          <button id="unsavedSave" class="primary" type="button" data-i18n="unsaved.save">Save</button>
+          <button id="unsavedDiscard" class="ghost" type="button" data-i18n="unsaved.discard">Continue</button>
+          <button id="unsavedCancel" class="ghost danger" type="button" data-i18n="unsaved.cancel">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="main.js"></script>
+  </body>
+</html>
