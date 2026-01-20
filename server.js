@@ -26,7 +26,7 @@ app.get("/api/health", (req, res) => {
 });
 
 app.get("/api/state", (req, res) => {
-  db.get("SELECT json FROM app_state WHERE id = 1", (err, row) => {
+  db.get("SELECT json, updated_at FROM app_state WHERE id = 1", (err, row) => {
     if (err) {
       res.status(500).json({ error: "db_read_failed" });
       return;
@@ -36,7 +36,7 @@ app.get("/api/state", (req, res) => {
       return;
     }
     try {
-      res.json(JSON.parse(row.json));
+      res.json({ state: JSON.parse(row.json), updatedAt: row.updated_at });
     } catch {
       res.status(500).json({ error: "db_parse_failed" });
     }

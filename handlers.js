@@ -9,6 +9,7 @@ import {
   setCurrentUser,
   setCurrentProject,
   getCurrentUser,
+  startRemoteSync,
 } from "./state.js";
 import { getDefaultSubsystems } from "./state.js";
 import {
@@ -689,6 +690,12 @@ export function initHandlers() {
   if (!ui.createInfo.checked) {
     setMultiValues(ui.createVerificationOptions, ["Analysis"]);
   }
+
+  startRemoteSync({
+    intervalMs: 5000,
+    canApply: () => !hasUnsavedDetailChanges(),
+    onApplied: () => refreshAll(),
+  });
 }
 
 

@@ -1,6 +1,9 @@
 const storeKey = "rms-data-v1";
 const apiStateUrl = "/api/state";
 let apiEnabled = false;
+let lastRemoteUpdatedAt = null;
+let remoteSyncTimer = null;
+let remoteSyncInFlight = false;
 
 const defaultSubsystems = [
   { code: "GEN", label: "Genel Sistem Gereksinimleri (Çevresel koşullar, mobilite)" },
@@ -34,12 +37,12 @@ export async function initState() {
   apiEnabled = await checkApi();
   const localState = loadLocal();
   if (apiEnabled) {
-    const remoteState = await loadRemote();
-    if (remoteState) {
-      Object.assign(state, structuredClone(baseData), remoteState);
-      seedDefaults();
-      migrateTargetPhase();
-      saveLocal();
+    const remotePayload = await loadRemote();
+    if (remotePayload?.state) {
+      applyRemoteState(remotePayload.state);
+      if (remotePayload.updatedAt) {
+        lastRemoteUpdatedAt = remotePayload.updatedAt;
+      }
       return;
     }
   }
@@ -148,7 +151,8 @@ async function loadRemote() {
     const res = await fetch(apiStateUrl, { cache: "no-store" });
     if (res.status === 204) return null;
     if (!res.ok) return null;
-    return await res.json();
+    const payload = await res.json();
+    return normalizeRemotePayload(payload);
   } catch {
     return null;
   }
@@ -161,9 +165,59 @@ async function saveRemote() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(state),
     });
+    lastRemoteUpdatedAt = new Date().toISOString();
   } catch {
     // Best-effort persistence; localStorage remains the fallback.
   }
+}
+
+function normalizeRemotePayload(payload) {
+  if (!payload) return null;
+  if (payload.state && typeof payload.state === "object") {
+    return {
+      state: payload.state,
+      updatedAt: payload.updatedAt || null,
+    };
+  }
+  if (typeof payload === "object") {
+    return { state: payload, updatedAt: null };
+  }
+  return null;
+}
+
+function applyRemoteState(remoteState) {
+  Object.assign(state, structuredClone(baseData), remoteState);
+  seedDefaults();
+  migrateTargetPhase();
+  saveLocal();
+}
+
+export function startRemoteSync(options = {}) {
+  if (!apiEnabled) return;
+  const intervalMs = Number(options.intervalMs || 5000);
+  const canApply = typeof options.canApply === "function" ? options.canApply : () => true;
+  const onApplied = typeof options.onApplied === "function" ? options.onApplied : null;
+  if (remoteSyncTimer) clearInterval(remoteSyncTimer);
+
+  remoteSyncTimer = setInterval(async () => {
+    if (remoteSyncInFlight) return;
+    remoteSyncInFlight = true;
+    try {
+      const remotePayload = await loadRemote();
+      if (!remotePayload?.state) return;
+      if (remotePayload.updatedAt && lastRemoteUpdatedAt) {
+        if (remotePayload.updatedAt <= lastRemoteUpdatedAt) return;
+      }
+      if (!canApply()) return;
+      applyRemoteState(remotePayload.state);
+      if (remotePayload.updatedAt) {
+        lastRemoteUpdatedAt = remotePayload.updatedAt;
+      }
+      if (onApplied) onApplied();
+    } finally {
+      remoteSyncInFlight = false;
+    }
+  }, intervalMs);
 }
 
 function isEmptyState(candidate) {
