@@ -136,6 +136,7 @@ Yazılım modüler olarak tasarlanacaktır. İlişkisel veritabanına sahip olac
 * **Proje Seçimi:** Giriş sonrası kullanıcı, yetkili olduğu projelerden birini seçer ve sadece o proje verilerini görür.
 * **Proje Bazlı Veri İzolasyonu:** Gereksinimler, baseline'lar ve önceliklendirme verileri proje bazlı tutulur.
 * **Gerçek Zamanlı Senkronizasyon:** Aynı proje üzerinde çalışan kullanıcılar arasında gereksinim ekleme/güncelleme işlemleri otomatik olarak senkronize edilir. İstemci tarafı belirli aralıklarla (ör. 5 sn) sunucudaki durumu kontrol eder ve yerel değişiklik yoksa ekranı günceller.
+* **Oturum Bazlı Seçimler:** Aktif kullanıcı ve proje seçimi gibi oturum bilgileri istemciye özeldir; diğer kullanıcılarla senkronize edilmez.
 * **Admin Page:** Admin rolündeki kullanıcılar için kullanıcı yönetimi, proje oluşturma, proje-kullanıcı yetkilendirme ve proje kataloğu (düzenleme) ekranı bulunur.
 * **Yetkilendirme Rolleri:** Admin, Supervisor, User rolleri desteklenir. Proje içindeki atamalarda Editor / Viewer rolleri kullanılır.
 

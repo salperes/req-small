@@ -186,7 +186,17 @@ function normalizeRemotePayload(payload) {
 }
 
 function applyRemoteState(remoteState) {
+  const sessionSnapshot = {
+    currentUserId: state.currentUserId,
+    currentProjectId: state.currentProjectId,
+  };
   Object.assign(state, structuredClone(baseData), remoteState);
+  if (sessionSnapshot.currentUserId) {
+    state.currentUserId = sessionSnapshot.currentUserId;
+  }
+  if (sessionSnapshot.currentProjectId) {
+    state.currentProjectId = sessionSnapshot.currentProjectId;
+  }
   seedDefaults();
   migrateTargetPhase();
   saveLocal();
