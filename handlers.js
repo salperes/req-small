@@ -382,6 +382,7 @@ export function initHandlers() {
     const rows = [
       [
         t("csv.header.id"),
+        t("csv.header.specClause"),
         t("csv.header.title"),
         t("csv.header.discipline"),
         t("csv.header.status"),
@@ -394,6 +395,7 @@ export function initHandlers() {
       ],
       ...source.map((req) => [
         req.id,
+        req.specClause || "",
         req.requirement,
         req.discipline,
         req.status,
