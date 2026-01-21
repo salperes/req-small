@@ -431,17 +431,10 @@ export function initHandlers() {
   });
 
   if (ui.detailPrev) {
-    ui.detailPrev.addEventListener("click", () => navigateDetail(-1));
+    ui.detailPrev.addEventListener("click", () => requestDetailNav(-1, { allowAutoSave: false }));
   }
   if (ui.detailNext) {
-    ui.detailNext.addEventListener("click", () => {
-      if (ui.detailAutoSave?.checked && hasUnsavedDetailChanges()) {
-        pendingAutoNav = 1;
-        ui.detailForm.requestSubmit();
-        return;
-      }
-      navigateDetail(1);
-    });
+    ui.detailNext.addEventListener("click", () => requestDetailNav(1, { allowAutoSave: true }));
   }
   if (ui.unsavedSave) {
     ui.unsavedSave.addEventListener("click", () => handleUnsavedDecision("save"));
@@ -695,6 +688,24 @@ export function initHandlers() {
     });
   }
 
+  document.addEventListener("keydown", (event) => {
+    if (event.repeat) return;
+    const target = event.target;
+    if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement || target instanceof HTMLSelectElement)
+      return;
+    if (target?.isContentEditable) return;
+    const activePanel = document.querySelector(".tab-panel.active");
+    if (!activePanel || activePanel.id !== "library") return;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      event.preventDefault();
+      requestDetailNav(1, { allowAutoSave: true });
+    }
+    if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      event.preventDefault();
+      requestDetailNav(-1, { allowAutoSave: false });
+    }
+  });
+
   applyInfoFieldState("create");
   if (!ui.createInfo.checked) {
     setMultiValues(ui.createVerificationOptions, ["Analysis"]);
@@ -870,6 +881,16 @@ function handleUnsavedDecision(action) {
       navigateDetail(direction, { force: true });
     }, 0);
   }
+}
+
+function requestDetailNav(direction, options = {}) {
+  const allowAutoSave = Boolean(options.allowAutoSave);
+  if (allowAutoSave && ui.detailAutoSave?.checked && hasUnsavedDetailChanges()) {
+    pendingAutoNav = direction;
+    ui.detailForm.requestSubmit();
+    return;
+  }
+  navigateDetail(direction);
 }
 
 function hasUnsavedDetailChanges() {

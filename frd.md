@@ -126,6 +126,7 @@ Yazılım modüler olarak tasarlanacaktır. İlişkisel veritabanına sahip olac
 * **Gereksinim / Gerekçe:** "Gereksinim" çok satırlı, "Gerekçe" tek satırlı alan olarak yer alır.
 * **Comments & Versions:** Ayrı bir tab yoktur. Yorumlar ve versiyon geçmişi Requirement Library tabında, detay ve liste panellerinin altında görünür.
 * **Detay Navigasyon:** Requirement Detail formunun altında **Önceki / Sonraki / Değişiklikleri Kaydet** butonları bulunur. Önceki/Sonraki seçili gereksinimin listede bir önceki/sonraki maddesine gider. Seçili gereksinim listede scroll ile görünür ve kalın çerçeve ile vurgulanır (yalnızca Requirement Library listesinde). Önceki/Sonraki butonları ilk/son öğede pasif olur. Kaydetmeden önce Önceki/Sonraki'ye basılırsa **Kaydet / Devam Et / İptal** seçenekli uyarı gösterilir.
+* **Klavye Navigasyonu:** Requirement Library içinde seçili gereksinimde sağ/aşağı ok tuşu bir sonraki maddeye, sol/yukarı ok tuşu bir önceki maddeye geçer.
 * **Otomatik Sakla:** "Otomatik Sakla" seçiliyse, **Sonraki** butonu mevcut değişiklikleri otomatik kaydeder ve bir sonraki gereksinime geçer.
 * **CSV Şablonu:** CSV şablonu "spec clause | rationale | verification method" kolonlarını içerir; doğrulama metodu virgülle ayrılmış çoklu değer kabul eder.
 * **Form Tutarlılığı:** Yeni Gereksinim formu ile Gereksinim Detay formu aynı alanlar ve aynı dizilim ile sunulur.
