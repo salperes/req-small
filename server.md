@@ -8,6 +8,8 @@ running container: rms-reqmgmt
 app path (container): /app
 db path (container): /app/data/rms.db
 
+auto increase minor version number after each code update, and update version.md too.
+
 deploy/update (PowerShell, uses Posh-SSH):
 1) Install module (once):
    Install-Module -Name Posh-SSH -Scope CurrentUser -Force -AllowClobber

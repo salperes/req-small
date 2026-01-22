@@ -18,7 +18,12 @@ Yazılım modüler olarak tasarlanacaktır. İlişkisel veritabanına sahip olac
 
 ### 2.2. Gereksinim Öznitelikleri ve Organizasyon
 
-* **Benzersiz Numaralandırma:** Her gereksinim, sistem tarafından üretilen benzersiz bir ID (örn: REQ-001, SYS-102) ile takip edilmelidir.
+* **Benzersiz Numaralandırma:** Onay/İnceleme aşamasında otomatik atanır; format `AAA-SI-CC-DDDD.EEEE` dir.
+  - **AAA:** Proje (sistem) kodu, admin panelinden tanımlanır (3 karakter).
+  - **SI:** Tüm projeler için sabit ikinci blok.
+  - **CC:** Gereksinim tipi kodu (FN/PR/EM/GV/RG/AR/KS/TG/CG/AC).
+  - **DDDD:** Proje + tip bazında artan ana numara.
+  - **EEEE:** Aynı DDDD altındaki türetilmiş/alt ister sırası (ebeveyn DDDD’sini devralır).
 * **Tip Belirleme (Açıklama Modu):** Bazı maddelerin sadece bilgilendirme amaçlı (gereksinim veya gerekçe) olduğunu belirtmek için bir **"Açıklama" (Checkbox)** alanı bulunmalıdır.
 * **Bilgilendirme Kuralı:** "Informational Only" seçili ise Disiplin "-", Gereksinim Tipi "Açıklama", Doğrulama Metodu "-" olarak gösterilir.
 * **Disiplin Ayrımı:** Gereksinimler, aşağıdaki disiplinlere göre kategorize edilebilmelidir (Pulldown Menu):
@@ -29,6 +34,7 @@ Yazılım modüler olarak tasarlanacaktır. İlişkisel veritabanına sahip olac
   - Otomasyon
   - Optik
   - Diğer (Özelleştirilebilir)
+* **Alt Sistem Seçimi:** Alt sistem alanı çok seçimli olmalıdır; gereksinim birden fazla alt sistemle ilişkilendirilebilir. Varsayılan liste: KP0-Genel İster, KP1-Görüntüleme (Jeneratör/Dedektör/Kolimatör), KP2-Mekanik Ünite, KP3-Ana Kontrol, KP4-BT (PC/sunucu/network), KP5-Yazılım, KP6-Güç dağıtım, KP7-Yardımcı Cihazlar.
 * **Türetilmiş İsterler:** Mevcut bir gereksinimden yeni alt isterler (derived requirements) oluşturulabilmeli ve bunlar hiyerarşik olarak ana gereksinime bağlanmalıdır.
 * **Gereksinim Metni:** "Gereksinim" alanı çok satırlı (multi-line) metin kutusu olarak girilmelidir.
 * **Gerekçe:** "Gerekçe" alanı tek satırlı (single line) metin kutusu olarak girilmelidir.
@@ -48,12 +54,12 @@ Yazılım modüler olarak tasarlanacaktır. İlişkisel veritabanına sahip olac
   - Inspection
   - Gösterim
   - Certificate of Conformity
-* **Gereksinim ID Formatı:** `[SİSTEM]-[ALT SİSTEM]-[TİP]-[NUMARA]` şeklinde üretilir.
-  - Sistem kodu 3 karakterdir ve proje bazlı tanımlanır.
-  - Alt sistem kodu 3 karakterdir; proje bazlı düzenlenebilir. Varsayılan: GEN/RAD/DET/SFT/MKN/SNG/OPT.
-  - Gereksinim tipi kodu 2 karakterdir (Fonksiyonel/Performans/Emniyet/Güvenlik/Regülasyon/Arayüz/Kısıt/Teknik/Çevresel/Açıklama).
-  - Numara 4 hanelidir ve **sistem-alt sistem-tip** kombinasyonu bazında artar.
-* **Numaralandırma Zamanı:** Gereksinim İncelemede/Onaylı durumuna geçerken otomatik atanır.
+* **Gereksinim ID Formatı:** `AAA-SI-CC-DDDD.EEEE` (onay/incelemede otomatik atanır).
+  - Sistem kodu (AAA) 3 karakterdir; proje bazlı tanımlanır.
+  - Alt sistem kodu ID’de yer almaz; kayıt birden çok alt sistemle ilişkilendirilebilir.
+  - Gereksinim tipi kodu (CC) 2 karakterdir (FN/PR/EM/GV/RG/AR/KS/TG/CG/AC).
+  - DDDD: proje + tip içinde artan ana numara; EEEE: aynı DDDD altındaki alt ister sırası.
+* **Numaralandırma Zamanı:** Gereksinim İncelemede/Onaylı durumuna geçerken otomatik atanır; alt isterler ebeveynin DDDD’sini devralır, EEEE sırayla artar.
 * **Global Req ID:** Projeler arasında tekil `REQ-0000001` formatında kimliktir; import sırasında atanır ve ekranda bilgi olarak gösterilir. Projeler arası linkleme bu ID ile yapılır.
 * **Proje Bazlı Seçim:** Requirement Library seçimleri aktif proje bazında değerlendirilir; aynı ID farklı projelerde olsa dahi detay formu yalnızca aktif projenin verisini gösterir.
 
@@ -176,7 +182,7 @@ Yazılım modüler olarak tasarlanacaktır. İlişkisel veritabanına sahip olac
 * **Supervisor Rolü:** Yetkili olduğu projelerde ekip dahil etme / çıkarma yapabilir.
 * **Proje Kataloğu:** Admin ve Supervisor, mevcut projelerin ad, müşteri, başlangıç, bitiş ve açıklama alanlarını güncelleyebilir.
 * **JSON İçe Aktarım:** Admin panelinden JSON içe aktarılabilir. İçe aktarmadan önce "Mevcut tüm veriler değiştirilecektir." uyarısı ile onay istenir; opsiyonel olarak mevcut veriler için yedek JSON indirilir. İşlem sonucu Admin panelinde durum mesajı ile gösterilir.
-* **Sistem Kodu & Alt Sistemler:** Proje tanımında 3 karakterlik sistem kodu ve alt sistem listesi (GEN/RAD/DET/SFT/MKN/SNG/OPT varsayılan) düzenlenebilir.
+* **Sistem Kodu & Alt Sistemler:** Proje tanımında 3 karakterlik sistem kodu ve alt sistem listesi (varsayılan: KP0-Genel İster, KP1-Görüntüleme, KP2-Mekanik Ünite, KP3-Ana Kontrol, KP4-BT, KP5-Yazılım, KP6-Güç dağıtım, KP7-Yardımcı Cihazlar) düzenlenebilir; alt sistem alanı çok seçimlidir.
 * **Proje Silme:** Admin ve Supervisor projeyi silebilir; projeye bağlı gereksinimler, baseline'lar ve üyelikler de temizlenir.
 * **Erişim Denetimi:** Supervisor yalnızca bağlı olduğu projeleri görür ve bu projelerde yetki yönetir.
 

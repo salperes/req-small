@@ -135,6 +135,15 @@ function formatVerificationLabel(values) {
   return list.map((value) => map[value] || value).join(", ");
 }
 
+function getSubsystemCodes(requirement) {
+  if (!requirement) return [];
+  if (Array.isArray(requirement.subsystemCodes) && requirement.subsystemCodes.length) {
+    return requirement.subsystemCodes;
+  }
+  if (requirement.subsystemCode) return [requirement.subsystemCode];
+  return [];
+}
+
 function formatRole(value) {
   const map = {
     user: t("role.user"),
@@ -157,6 +166,7 @@ function formatSubsystemLines(list) {
 function renderBranch(byParent, parentId, depth, target, highlightSelected) {
   const items = byParent[parentId] || [];
   items.forEach((req) => {
+    const subsystems = getSubsystemCodes(req);
     const card = document.createElement("div");
     card.className = "req-card";
     if (highlightSelected && req.id === getSelectedReqId()) {
@@ -171,7 +181,11 @@ function renderBranch(byParent, parentId, depth, target, highlightSelected) {
       </div>
       <div class="req-meta">
         ${req.globalId ? `<span class="tag global">${escapeHtml(req.globalId)}</span>` : ""}
-        ${req.subsystemCode ? `<span class="tag subsystem">${escapeHtml(req.subsystemCode)}</span>` : ""}
+        ${
+          subsystems.length
+            ? subsystems.map((code) => `<span class="tag subsystem">${escapeHtml(code)}</span>`).join(" ")
+            : ""
+        }
         <span class="tag">${escapeHtml(formatDiscipline(req.isInfo ? "-" : req.discipline))}</span>
         ${
           req.requirementType || req.isInfo
@@ -219,7 +233,7 @@ export function renderDetail() {
   ui.detailTitle.value = requirement.requirement;
   ui.detailDesc.value = requirement.rationale;
   ui.detailDiscipline.value = requirement.discipline;
-  if (ui.detailSubsystem) ui.detailSubsystem.value = requirement.subsystemCode || "GEN";
+  setSelectValues(ui.detailSubsystem, getSubsystemCodes(requirement));
   ui.detailStatusSelect.value = requirement.status;
   ui.detailParent.value = requirement.parentId;
   ui.detailParentSelect.textContent = requirement.parentId
@@ -306,6 +320,14 @@ function setMultiDisabled(panel, disabled) {
   if (trigger) trigger.disabled = disabled;
 }
 
+function setSelectValues(select, values) {
+  if (!select) return;
+  const set = new Set(values || []);
+  Array.from(select.options || []).forEach((opt) => {
+    opt.selected = set.has(opt.value);
+  });
+}
+
 function cssEscape(value) {
   if (window.CSS?.escape) return window.CSS.escape(value);
   return String(value).replace(/["\\]/g, "\\$&");
@@ -382,9 +404,7 @@ export function renderSelectOptions() {
     ui.createSubsystem.innerHTML = subsystemOptions
       .map((opt) => `<option value="${opt.value}">${escapeHtml(opt.label)}</option>`)
       .join("");
-    if (!ui.createSubsystem.value) {
-      ui.createSubsystem.value = subsystemOptions[0]?.value || "GEN";
-    }
+    setSelectValues(ui.createSubsystem, [subsystemOptions[0]?.value || "KP0"]);
   }
   if (ui.createGlobalId) {
     const next = Number(state.nextId || 1);

@@ -10,8 +10,8 @@ import {
   setCurrentProject,
   getCurrentUser,
   startRemoteSync,
+  getDefaultSubsystems,
 } from "./state.js";
-import { getDefaultSubsystems } from "./state.js";
 import {
   createRequirement,
   getRequirement,
@@ -31,6 +31,7 @@ import {
   renderTree,
   syncTraceFields,
 } from "./render.js";
+import { normalizeSystemCode } from "./state.js";
 
 export function initTabs() {
   const tabs = Array.from(document.querySelectorAll(".tab"));
@@ -156,7 +157,7 @@ export function initHandlers() {
       parentId: ui.createParent.value || "",
       isInfo: ui.createInfo.checked,
       requirementType: ui.createInfo.checked ? "Açıklama" : ui.createRequirementType.value,
-      subsystemCode: ui.createSubsystem?.value || "GEN",
+      subsystemCodes: getSelectValues(ui.createSubsystem),
       verificationMethod: ui.createInfo.checked
         ? ["-"]
         : createVerification.length
@@ -242,7 +243,8 @@ export function initHandlers() {
     requirement.parentId = ui.detailParent.value || "";
     requirement.isInfo = ui.detailInfo.checked;
     requirement.requirementType = ui.detailRequirementType.value;
-    requirement.subsystemCode = ui.detailSubsystem?.value || "GEN";
+    requirement.subsystemCodes = getSelectValues(ui.detailSubsystem);
+    requirement.subsystemCode = requirement.subsystemCodes[0] || "KP0";
     const detailVerification = getMultiValues(ui.detailVerificationOptions);
     requirement.verificationMethod = detailVerification.length ? detailVerification : ["Analysis"];
     if (requirement.isInfo) {
@@ -399,7 +401,7 @@ export function initHandlers() {
         req.specClause || "",
         req.requirement,
         formatDisciplineCsv(req.isInfo ? "-" : req.discipline),
-        req.subsystemCode || "",
+        formatSubsystemCsv(req),
         formatStatusCsv(req.status),
         req.isInfo ? t("meta.yes") : t("meta.no"),
         formatRequirementTypeCsv(req.isInfo ? "Açıklama" : req.requirementType || ""),
@@ -563,37 +565,69 @@ export function initHandlers() {
 
   
   ui.csvImportBtn.addEventListener("click", async () => {
-    if (!state.currentProjectId) return;
+    if (!state.currentProjectId) {
+      ui.importStatus.textContent = t("status.selectProjectFirst");
+      return;
+    }
     const file = ui.csvFile.files?.[0];
-    if (!file) return;
+    if (!file) {
+      ui.importStatus.textContent = t("status.selectCsvFile");
+      ui.csvFile.click();
+      return;
+    }
     const text = await file.text();
-    const rows = parsePipe(text);
-    if (!rows.length) return;
-    const created = rows
-      .filter((row) => row.some((cell) => cell.trim() !== ""))
+    const delimiter = detectDelimiter(text);
+    const rows = parseDelimited(text, delimiter);
+    if (!rows.length) {
+      ui.importStatus.textContent = t("status.nothingToImport");
+      return;
+    }
+    const cleanedRows = rows.filter((row) => row.some((cell) => String(cell).trim() !== ""));
+    const headerMap = buildCsvHeaderMap(cleanedRows[0]);
+    const dataRows = headerMap ? cleanedRows.slice(1) : cleanedRows;
+    const created = dataRows
       .map((row) => {
-        const specClause = row[0]?.trim() || "";
-        const description = row[1]?.trim() || "";
-        const verification = splitList(row[2] || "");
+        const getCell = (key, fallbackIndex) => {
+          const index = headerMap?.[key];
+          const value = index != null ? row[index] : row[fallbackIndex];
+          return String(value ?? "").trim();
+        };
+        const id = getCell("id", 0);
+        const specClause = getCell("specClause", 1);
+        const requirementText = getCell("requirement", 2);
+        const discipline = parseDisciplineCsv(getCell("discipline", 3)) || "System";
+        const subsystemCodes = parseSubsystemCsv(getCell("subsystem", 4));
+        const status = parseStatusCsv(getCell("status", 5)) || "Draft";
+        const isInfo = parseCsvBoolean(getCell("info", 6)) || isInfoType(getCell("requirementType", 7));
+        const requirementType = parseRequirementTypeCsv(getCell("requirementType", 7), isInfo);
+        const verification = parseVerificationCsv(getCell("verificationMethod", 8), isInfo);
+        const parentId = getCell("parent", 9);
+        const targetQuarter = getCell("quarter", 10) || "Faz1";
+        const effort = Number(getCell("effort", 11) || 5);
         return createRequirement({
-          requirement: description,
-          rationale: description,
+          id: id || undefined,
+          requirement: requirementText,
+          rationale: requirementText,
           projectId: state.currentProjectId,
-          discipline: "System",
-          status: "Draft",
-          parentId: "",
-          isInfo: false,
-          requirementType: "Functional",
+          discipline: isInfo ? "-" : discipline,
+          status,
+          parentId,
+          isInfo,
+          requirementType,
           verificationMethod: verification.length ? verification : ["Analysis"],
-          effort: 5,
-        targetQuarter: "Faz1",
+          effort,
+          targetQuarter,
           specClause,
+          subsystemCodes,
           standards: [],
           documents: [],
         });
-      });
+      })
+      .filter(Boolean);
     ui.csvFile.value = "";
-    ui.importStatus.textContent = t("status.importedCsv", { count: created.length });
+    ui.importStatus.textContent = created.length
+      ? t("status.importedCsv", { count: created.length })
+      : t("status.nothingToImport");
     refreshAll(saveData);
   });
 
@@ -763,7 +797,7 @@ function enforceAuthState() {
   ui.authModal.classList.toggle("hidden", Boolean(user));
 }
 
-function parsePipe(text) {
+function parseDelimited(text, delimiter) {
   const rows = [];
   let row = [];
   let current = "";
@@ -780,7 +814,7 @@ function parsePipe(text) {
       inQuotes = !inQuotes;
       continue;
     }
-    if (char === "|" && !inQuotes) {
+    if (char === delimiter && !inQuotes) {
       row.push(current);
       current = "";
       continue;
@@ -800,6 +834,172 @@ function parsePipe(text) {
     rows.push(row);
   }
   return rows;
+}
+
+function detectDelimiter(text) {
+  const lines = String(text || "").split(/\r?\n/);
+  const sample = lines.find((line) => line.trim() !== "");
+  if (!sample) return "|";
+  const candidates = ["|", ";", ",", "\t"];
+  let best = "|";
+  let bestCount = 0;
+  candidates.forEach((candidate) => {
+    let count = 0;
+    for (let i = 0; i < sample.length; i += 1) {
+      if (sample[i] === candidate) count += 1;
+    }
+    if (count > bestCount) {
+      best = candidate;
+      bestCount = count;
+    }
+  });
+  return best;
+}
+
+function buildCsvHeaderMap(row) {
+  if (!row || row.length < 2) return null;
+  const normalized = row.map((cell) =>
+    String(cell ?? "")
+      .replace(/\ufeff/g, "")
+      .trim()
+      .toLowerCase()
+  );
+  const map = {};
+  normalized.forEach((cell, index) => {
+    if (cell === "id") map.id = index;
+    if (cell === "madde" || cell === "spec clause") map.specClause = index;
+    if (cell === "gereksinim" || cell === "requirement") map.requirement = index;
+    if (cell === "disiplin" || cell === "discipline") map.discipline = index;
+    if (cell === "alt sistem" || cell === "subsystem") map.subsystem = index;
+    if (cell === "durum" || cell === "status") map.status = index;
+    if (cell === "bilgi" || cell === "info") map.info = index;
+    if (cell === "gereksinim tipi" || cell === "requirement type") map.requirementType = index;
+    if (cell === "doğrulama metodu" || cell === "dogrulama metodu" || cell === "verification method") {
+      map.verificationMethod = index;
+    }
+    if (cell === "üst" || cell === "parent") map.parent = index;
+    if (cell === "çeyrek" || cell === "ceyrek" || cell === "quarter") map.quarter = index;
+    if (cell === "efor" || cell === "effort") map.effort = index;
+  });
+  return Object.keys(map).length ? map : null;
+}
+
+function parseCsvBoolean(value) {
+  const normalized = normalizeCsvValue(value);
+  if (!normalized) return false;
+  return ["1", "true", "yes", "evet", "x", "var"].includes(normalized);
+}
+
+function isInfoType(value) {
+  const normalized = normalizeCsvValue(value);
+  return ["aciklama", "explanation"].includes(normalized);
+}
+
+function parseStatusCsv(value) {
+  const normalized = normalizeCsvValue(value);
+  if (!normalized) return "";
+  const map = {
+    draft: "Draft",
+    taslak: "Draft",
+    "in review": "In Review",
+    incelemede: "In Review",
+    approved: "Approved",
+    onayli: "Approved",
+    rejected: "Rejected",
+    reddedildi: "Rejected",
+  };
+  return map[normalized] || value;
+}
+
+function parseDisciplineCsv(value) {
+  const normalized = normalizeCsvValue(value);
+  if (!normalized) return "";
+  if (normalized === "-") return "-";
+  const map = {
+    system: "System",
+    sistem: "System",
+    mechanical: "Mechanical",
+    mekanik: "Mechanical",
+    software: "Software",
+    yazilim: "Software",
+    electronics: "Electronics",
+    elektronik: "Electronics",
+    automation: "Automation",
+    otomasyon: "Automation",
+    optics: "Optics",
+    optik: "Optics",
+    other: "Other",
+    diger: "Other",
+  };
+  return map[normalized] || value;
+}
+
+function parseRequirementTypeCsv(value, isInfo) {
+  if (isInfo) return "Açıklama";
+  const normalized = normalizeCsvValue(value);
+  if (!normalized) return "";
+  const map = {
+    functional: "Functional",
+    fonksiyonel: "Functional",
+    performance: "Performance",
+    performans: "Performance",
+    safety: "Safety",
+    emniyet: "Safety",
+    security: "Security",
+    guvenlik: "Security",
+    regulatory: "Regulatory",
+    regulasyon: "Regulatory",
+    interface: "Interface",
+    arayuz: "Interface",
+    constraint: "Constraint",
+    kisit: "Constraint",
+    "technical requirement": "Technical",
+    "teknik gereksinim": "Technical",
+    "environmental requirement": "Environmental",
+    "cevresel gereksinim": "Environmental",
+  };
+  return map[normalized] || value;
+}
+
+function parseVerificationCsv(value, isInfo) {
+  if (isInfo) return ["-"];
+  const list = splitList(String(value || ""));
+  if (!list.length) return [];
+  return list.map((item) => {
+    const normalized = normalizeCsvValue(item);
+    const map = {
+      analysis: "Analysis",
+      analiz: "Analysis",
+      test: "Test",
+      inspection: "Inspection",
+      muayene: "Inspection",
+      demonstration: "Demonstration",
+      gosterim: "Demonstration",
+      "certificate of conformity": "Certificate of Conformity",
+      "uygunluk sertifikasi": "Certificate of Conformity",
+      "-": "-",
+    };
+    return map[normalized] || item;
+  });
+}
+
+function normalizeCsvValue(value) {
+  return String(value ?? "")
+    .replace(/\ufeff/g, "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .replace(/[çÇ]/g, "c")
+    .replace(/[ğĞ]/g, "g")
+    .replace(/[ıİ]/g, "i")
+    .replace(/[öÖ]/g, "o")
+    .replace(/[şŞ]/g, "s")
+    .replace(/[üÜ]/g, "u")
+    .replace(/[âÂ]/g, "a")
+    .replace(/[êÊ]/g, "e")
+    .replace(/[îÎ]/g, "i")
+    .replace(/[ôÔ]/g, "o")
+    .replace(/[ûÛ]/g, "u");
 }
 
 function normalizeSystemCode(value) {
@@ -1116,6 +1316,28 @@ function formatVerificationCsv(values) {
     "-": t("meta.dash"),
   };
   return list.map((value) => map[value] || value).join(", ");
+}
+
+function formatSubsystemCsv(req) {
+  const list = Array.isArray(req.subsystemCodes) && req.subsystemCodes.length
+    ? req.subsystemCodes
+    : req.subsystemCode
+      ? [req.subsystemCode]
+      : [];
+  return list.join(",");
+}
+
+function parseSubsystemCsv(value) {
+  const rawList = splitList(String(value || ""));
+  const codes = rawList
+    .map((item) => normalizeSystemCode(item || ""))
+    .filter(Boolean);
+  return codes.length ? codes : ["KP0"];
+}
+
+function getSelectValues(select) {
+  if (!select) return [];
+  return Array.from(select.selectedOptions || []).map((opt) => opt.value).filter(Boolean);
 }
 
 function getVisibleRequirementOrder() {

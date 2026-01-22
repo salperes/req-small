@@ -1,4 +1,4 @@
-import { state, generateId, generateGlobalReqId } from "./state.js";
+﻿import { state, generateId, generateGlobalReqId } from "./state.js";
 import { now } from "./utils.js";
 
 export function createRequirement(data) {
@@ -7,6 +7,7 @@ export function createRequirement(data) {
   if (!data.projectId) return null;
   const id = resolveId(data.id, data.projectId);
   const verificationMethod = normalizeVerification(data.verificationMethod);
+  const subsystemCodes = normalizeSubsystemCodes(data.subsystemCodes, data.subsystemCode);
   const requirement = {
     id,
     globalId: data.globalId || generateGlobalReqId(),
@@ -19,7 +20,8 @@ export function createRequirement(data) {
     isInfo: Boolean(data.isInfo),
     requirementType: data.requirementType || "Functional",
     verificationMethod,
-    subsystemCode: data.subsystemCode || "GEN",
+    subsystemCodes,
+    subsystemCode: subsystemCodes[0] || "KP0",
     targetQuarter: data.targetQuarter || "Faz1",
     effort: Number(data.effort || 5),
     specClause: data.specClause || "",
@@ -70,6 +72,19 @@ function resolveId(preferredId, projectId) {
   return preferredId;
 }
 
+function normalizeSubsystemCodes(list, single) {
+  const values = [];
+  if (Array.isArray(list)) {
+    list.forEach((item) => values.push(item));
+  }
+  if (single) values.push(single);
+  const cleaned = values
+    .map((item) => normalizeCode(item, 4))
+    .filter(Boolean);
+  if (!cleaned.length) cleaned.push("KP0");
+  return Array.from(new Set(cleaned));
+}
+
 export function getRequirement(id, projectId) {
   if (!id) return null;
   if (projectId) {
@@ -103,15 +118,23 @@ export function ensureApprovedId(requirement) {
   const project = state.projects.find((item) => item.id === requirement.projectId);
   if (!project?.systemCode) return null;
   const systemCode = normalizeCode(project.systemCode, 3) || "SYS";
-  const subsystem = normalizeCode(requirement.subsystemCode || "GEN", 3) || "GEN";
   const typeCode = getRequirementTypeCode(requirement.requirementType);
   if (!typeCode) return null;
-  const prefix = `${systemCode}-${subsystem}-${typeCode}-`;
-  if (isApprovedId(requirement.id) && requirement.id.startsWith(prefix)) {
+  const basePrefix = `${systemCode}-SI-${typeCode}-`;
+  if (isApprovedId(requirement.id) && requirement.id.startsWith(basePrefix)) {
     return null;
   }
-  const next = getNextApprovedNumber(requirement.projectId, prefix, requirement.id);
-  const newId = `${prefix}${String(next).padStart(4, "0")}`;
+  let baseNumber;
+  const parent = requirement.parentId ? getRequirement(requirement.parentId, requirement.projectId) : null;
+  const parsedParent = parent && isApprovedId(parent?.id) ? parseApprovedId(parent.id) : null;
+  if (parsedParent) {
+    baseNumber = parsedParent.baseNumber;
+  } else {
+    baseNumber = getNextBaseNumber(requirement.projectId, basePrefix, requirement.id);
+  }
+  const baseNumberStr = String(baseNumber).padStart(4, "0");
+  const derivedNumber = getNextDerivedNumber(requirement.projectId, basePrefix, baseNumberStr, requirement.id);
+  const newId = `${basePrefix}${baseNumberStr}.${derivedNumber}`;
   if (newId === requirement.id) return null;
   updateRequirementId(requirement.id, newId);
   requirement.id = newId;
@@ -132,22 +155,52 @@ function updateRequirementId(oldId, newId) {
   });
 }
 
-function getNextApprovedNumber(projectId, prefix, excludeId) {
+function getNextBaseNumber(projectId, basePrefix, excludeId) {
   let max = 0;
   state.requirements.forEach((req) => {
     if (req.projectId !== projectId) return;
     if (excludeId && req.id === excludeId) return;
-    if (!req.id || !req.id.startsWith(prefix)) return;
-    const match = req.id.match(/-(\d{4})$/);
-    if (!match) return;
-    const num = Number(match[1]);
+    if (!isApprovedId(req.id)) return;
+    if (!req.id.startsWith(basePrefix)) return;
+    const parsed = parseApprovedId(req.id);
+    if (!parsed) return;
+    const num = Number(parsed.baseNumber);
     if (Number.isFinite(num)) max = Math.max(max, num);
   });
   return max + 1;
 }
 
+function getNextDerivedNumber(projectId, basePrefix, baseNumber, excludeId) {
+  let max = 0;
+  const baseStr = String(baseNumber).padStart(4, "0");
+  const prefix = `${basePrefix}${baseStr}.`;
+  state.requirements.forEach((req) => {
+    if (req.projectId !== projectId) return;
+    if (excludeId && req.id === excludeId) return;
+    if (!isApprovedId(req.id)) return;
+    if (!req.id.startsWith(prefix)) return;
+    const parsed = parseApprovedId(req.id);
+    if (!parsed) return;
+    const num = Number(parsed.derivedNumber);
+    if (Number.isFinite(num)) max = Math.max(max, num);
+  });
+  return String(max + 1).padStart(4, "0");
+}
+
 function isApprovedId(value) {
-  return /^[A-Z0-9]{3}-[A-Z0-9]{3}-[A-Z0-9]{2}-\d{4}$/.test(String(value || ""));
+  return /^[A-Z0-9]{3}-[A-Z0-9]{2}-[A-Z0-9]{2}-\d{4}\.\d{4}$/.test(String(value || ""));
+}
+
+function parseApprovedId(id) {
+  const match = String(id || "").match(/^([A-Z0-9]{3})-([A-Z0-9]{2})-([A-Z0-9]{2})-(\d{4})\.(\d{4})$/);
+  if (!match) return null;
+  return {
+    systemCode: match[1],
+    staticCode: match[2],
+    typeCode: match[3],
+    baseNumber: match[4],
+    derivedNumber: match[5],
+  };
 }
 
 function normalizeCode(value, length) {
@@ -167,25 +220,26 @@ function getRequirementTypeCode(value) {
     Safety: "EM",
     Emniyet: "EM",
     Security: "GV",
-    Güvenlik: "GV",
+    GÃ¼venlik: "GV",
     Guvenlik: "GV",
     Regulatory: "RG",
-    Regülasyon: "RG",
+    RegÃ¼lasyon: "RG",
     Regulasyon: "RG",
     Interface: "AR",
-    Arayüz: "AR",
+    ArayÃ¼z: "AR",
     Arayuz: "AR",
     Constraint: "KS",
-    Kısıt: "KS",
+    KÄ±sÄ±t: "KS",
     Kisit: "KS",
     Technical: "TG",
     "Teknik Gereksinim": "TG",
     Environmental: "CG",
     "?evresel Gereksinim": "CG",
-    Açıklama: "AC",
-    "AÃ§Ä±klama": "AC",
+    AÃ§Ä±klama: "AC",
+    "AÃƒÂ§Ã„Â±klama": "AC",
     Aciklama: "AC",
     Explanation: "AC",
   };
   return map[value] || "";
 }
+

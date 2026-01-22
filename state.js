@@ -1,4 +1,4 @@
-const storeKey = "rms-data-v1";
+﻿const storeKey = "rms-data-v1";
 const apiStateUrl = "/api/state";
 let apiEnabled = false;
 let lastRemoteUpdatedAt = null;
@@ -6,13 +6,14 @@ let remoteSyncTimer = null;
 let remoteSyncInFlight = false;
 
 const defaultSubsystems = [
-  { code: "GEN", label: "Genel Sistem Gereksinimleri (Çevresel koşullar, mobilite)" },
-  { code: "RAD", label: "Radyasyon ve X-Ray Üretimi (Jeneratör, Kolimatör)" },
-  { code: "DET", label: "Detektör Grubu ve Veri Toplama (Sensörler)" },
-  { code: "SFT", label: "Yazılım ve Görüntü Analizi (Yapay zeka, kullanıcı arayüzü)" },
-  { code: "MKN", label: "Mekanik ve Konstrüksiyon (Konveyör, Şasi, Hidrolik)" },
-  { code: "SNG", label: "Sağlık, Nişet ve Güvenlik (Radyasyon güvenliği, acil stop)" },
-  { code: "OPT", label: "Optik" },
+  { code: "KP0", label: "Genel İster" },
+  { code: "KP1", label: "Görüntüleme Alt Sistemi (Jeneratör-Dedektör-Kolimatör)" },
+  { code: "KP2", label: "Mekanik Ünite Alt Sistemi" },
+  { code: "KP3", label: "Ana Kontrol Alt Sistemi" },
+  { code: "KP4", label: "BT (PC, sunucu, network) Alt Sistemi" },
+  { code: "KP5", label: "Yazılım Alt Sistemi" },
+  { code: "KP6", label: "Güç dağıtım Alt Sistemi" },
+  { code: "KP7", label: "Yardımcı Cihazlar Alt Sistemi" },
 ];
 
 const baseData = {
@@ -449,13 +450,22 @@ function rebuildGlobalCounter() {
 
 function migrateSubsystemCodes() {
   state.requirements.forEach((req) => {
-    if (!req.subsystemCode) req.subsystemCode = "GEN";
+    if (!Array.isArray(req.subsystemCodes) || !req.subsystemCodes.length) {
+      const code = req.subsystemCode || "KP0";
+      req.subsystemCodes = [code];
+    }
+    if (!req.subsystemCode) req.subsystemCode = req.subsystemCodes[0] || "KP0";
   });
   state.baselines.forEach((baseline) => {
     if (!Array.isArray(baseline.requirements)) return;
     baseline.requirements.forEach((req) => {
-      if (!req.subsystemCode) req.subsystemCode = "GEN";
+      if (!Array.isArray(req.subsystemCodes) || !req.subsystemCodes.length) {
+        const code = req.subsystemCode || "KP0";
+        req.subsystemCodes = [code];
+      }
+      if (!req.subsystemCode) req.subsystemCode = req.subsystemCodes[0] || "KP0";
     });
   });
 }
+
 
