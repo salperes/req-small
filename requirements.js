@@ -124,17 +124,27 @@ export function ensureApprovedId(requirement) {
   if (isApprovedId(requirement.id) && requirement.id.startsWith(basePrefix)) {
     return null;
   }
-  let baseNumber;
   const parent = requirement.parentId ? getRequirement(requirement.parentId, requirement.projectId) : null;
   const parsedParent = parent && isApprovedId(parent?.id) ? parseApprovedId(parent.id) : null;
-  if (parsedParent) {
-    baseNumber = parsedParent.baseNumber;
-  } else {
-    baseNumber = getNextBaseNumber(requirement.projectId, basePrefix, requirement.id);
-  }
+
+  // Base number: parent's base if derived, otherwise next base
+  const baseNumber = parsedParent?.baseNumber
+    ? parsedParent.baseNumber
+    : getNextBaseNumber(requirement.projectId, basePrefix, requirement.id);
   const baseNumberStr = String(baseNumber).padStart(4, "0");
-  const derivedNumber = getNextDerivedNumber(requirement.projectId, basePrefix, baseNumberStr, requirement.id);
-  const newId = `${basePrefix}${baseNumberStr}.${derivedNumber}`;
+
+  let newId;
+  if (parsedParent) {
+    const derivedNumber = getNextDerivedNumber(
+      requirement.projectId,
+      basePrefix,
+      baseNumberStr,
+      requirement.id
+    );
+    newId = `${basePrefix}${baseNumberStr}.${derivedNumber}`;
+  } else {
+    newId = `${basePrefix}${baseNumberStr}`;
+  }
   if (newId === requirement.id) return null;
   updateRequirementId(requirement.id, newId);
   requirement.id = newId;
@@ -188,18 +198,20 @@ function getNextDerivedNumber(projectId, basePrefix, baseNumber, excludeId) {
 }
 
 function isApprovedId(value) {
-  return /^[A-Z0-9]{3}-[A-Z0-9]{2}-[A-Z0-9]{2}-\d{4}\.\d{4}$/.test(String(value || ""));
+  return /^[A-Z0-9]{3}-[A-Z0-9]{2}-[A-Z0-9]{2}-\d{4}(?:\.\d{4})?$/.test(String(value || ""));
 }
 
 function parseApprovedId(id) {
-  const match = String(id || "").match(/^([A-Z0-9]{3})-([A-Z0-9]{2})-([A-Z0-9]{2})-(\d{4})\.(\d{4})$/);
+  const match = String(id || "").match(
+    /^([A-Z0-9]{3})-([A-Z0-9]{2})-([A-Z0-9]{2})-(\d{4})(?:\.(\d{4}))?$/
+  );
   if (!match) return null;
   return {
     systemCode: match[1],
     staticCode: match[2],
     typeCode: match[3],
     baseNumber: match[4],
-    derivedNumber: match[5],
+    derivedNumber: match[5] || null,
   };
 }
 
