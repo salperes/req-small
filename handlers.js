@@ -31,7 +31,6 @@ import {
   renderTree,
   syncTraceFields,
 } from "./render.js";
-import { normalizeSystemCode } from "./state.js";
 
 export function initTabs() {
   const tabs = Array.from(document.querySelectorAll(".tab"));
