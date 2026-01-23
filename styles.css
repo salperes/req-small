@@ -431,6 +431,10 @@ input[type="radio"] {
   text-align: left;
   width: 100%;
 }
+.subsystem-options .multi-option + .multi-option {
+  border-top: 1px solid rgba(15, 27, 45, 0.12);
+  padding-top: 6px;
+}
 
 .multi-option input {
   margin: 0;

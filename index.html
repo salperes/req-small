@@ -174,8 +174,19 @@
                 <div class="row three">
                   <label>
                     <span data-i18n="field.subsystem">Subsystem</span>
-                    <select id="createSubsystem" multiple size="8"></select>
-                  </label>                  <label>
+                    <div class="multi-select">
+                      <button
+                        id="createSubsystemTrigger"
+                        type="button"
+                        class="select-trigger"
+                        data-placeholder="Select..."
+                        data-i18n-placeholder="select.choose"
+                      ></button>
+                      <div class="multi-options hidden subsystem-options" data-multi="createSubsystem"></div>
+                      <input id="createSubsystemCodes" type="hidden" value="" />
+                    </div>
+                  </label>
+                  <label>
                     <span data-i18n="field.discipline">Discipline</span>
                     <select id="createDiscipline">
                       <option value="System" data-i18n="discipline.system">System</option>
@@ -432,7 +443,17 @@
                 <div class="row three">
                   <label>
                     <span data-i18n="field.subsystem">Subsystem</span>
-                    <select id="detailSubsystem" multiple size="8"></select>
+                    <div class="multi-select">
+                      <button
+                        id="detailSubsystemTrigger"
+                        type="button"
+                        class="select-trigger"
+                        data-placeholder="Select..."
+                        data-i18n-placeholder="select.choose"
+                      ></button>
+                      <div class="multi-options hidden subsystem-options" data-multi="detailSubsystem"></div>
+                      <input id="detailSubsystemCodes" type="hidden" value="" />
+                    </div>
                   </label>
                   <label>
                     <span data-i18n="field.discipline">Discipline</span>

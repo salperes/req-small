@@ -233,7 +233,7 @@ export function renderDetail() {
   ui.detailTitle.value = requirement.requirement;
   ui.detailDesc.value = requirement.rationale;
   ui.detailDiscipline.value = requirement.discipline;
-  setSelectValues(ui.detailSubsystem, getSubsystemCodes(requirement));
+  setMultiValues(ui.detailSubsystemOptions, getSubsystemCodes(requirement));
   ui.detailStatusSelect.value = requirement.status;
   ui.detailParent.value = requirement.parentId;
   ui.detailParentSelect.textContent = requirement.parentId
@@ -320,14 +320,6 @@ function setMultiDisabled(panel, disabled) {
   if (trigger) trigger.disabled = disabled;
 }
 
-function setSelectValues(select, values) {
-  if (!select) return;
-  const set = new Set(values || []);
-  Array.from(select.options || []).forEach((opt) => {
-    opt.selected = set.has(opt.value);
-  });
-}
-
 function cssEscape(value) {
   if (window.CSS?.escape) return window.CSS.escape(value);
   return String(value).replace(/["\\]/g, "\\$&");
@@ -400,20 +392,24 @@ export function renderSelectOptions() {
   }));
   renderCustomSelect(ui.createParentSelect, ui.createParent, options);
   renderCustomSelect(ui.detailParentSelect, ui.detailParent, options);
-  if (ui.createSubsystem) {
-    ui.createSubsystem.innerHTML = subsystemOptions
-      .map((opt) => `<option value="${opt.value}">${escapeHtml(opt.label)}</option>`)
-      .join("");
-    setSelectValues(ui.createSubsystem, [subsystemOptions[0]?.value || "KP0"]);
+  const subsystemOptionMarkup = subsystemOptions
+    .map(
+      (opt) =>
+        `<label class="multi-option"><input type="checkbox" value="${escapeAttr(
+          opt.value
+        )}" /><span>${escapeHtml(opt.label)}</span></label>`
+    )
+    .join("");
+  if (ui.createSubsystemOptions) {
+    ui.createSubsystemOptions.innerHTML = subsystemOptionMarkup;
+    setMultiValues(ui.createSubsystemOptions, [subsystemOptions[0]?.value || "KP0"]);
   }
   if (ui.createGlobalId) {
     const next = Number(state.nextId || 1);
     ui.createGlobalId.value = `REQ-${String(next).padStart(7, "0")}`;
   }
-  if (ui.detailSubsystem) {
-    ui.detailSubsystem.innerHTML = subsystemOptions
-      .map((opt) => `<option value="${opt.value}">${escapeHtml(opt.label)}</option>`)
-      .join("");
+  if (ui.detailSubsystemOptions) {
+    ui.detailSubsystemOptions.innerHTML = subsystemOptionMarkup;
   }
   ui.traceReqSelect.innerHTML = options
     .map((opt) => `<option value="${opt.value}">${escapeHtml(opt.label)}</option>`)

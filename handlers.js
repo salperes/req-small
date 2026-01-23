@@ -147,6 +147,7 @@ export function initHandlers() {
     event.preventDefault();
     if (!state.currentProjectId) return;
     const createVerification = getMultiValues(ui.createVerificationOptions);
+    const createSubsystems = getMultiValues(ui.createSubsystemOptions);
     const requirement = createRequirement({
       requirement: ui.createTitle.value.trim(),
       rationale: ui.createDesc.value.trim(),
@@ -156,7 +157,7 @@ export function initHandlers() {
       parentId: ui.createParent.value || "",
       isInfo: ui.createInfo.checked,
       requirementType: ui.createInfo.checked ? "Açıklama" : ui.createRequirementType.value,
-      subsystemCodes: getSelectValues(ui.createSubsystem),
+      subsystemCodes: createSubsystems.length ? createSubsystems : ["KP0"],
       verificationMethod: ui.createInfo.checked
         ? ["-"]
         : createVerification.length
@@ -223,6 +224,12 @@ export function initHandlers() {
   if (ui.detailVerificationTrigger && ui.detailVerificationOptions) {
     initMultiSelect(ui.detailVerificationTrigger, ui.detailVerificationOptions, ui.detailVerificationMethod);
   }
+  if (ui.createSubsystemTrigger && ui.createSubsystemOptions) {
+    initMultiSelect(ui.createSubsystemTrigger, ui.createSubsystemOptions, ui.createSubsystemCodes);
+  }
+  if (ui.detailSubsystemTrigger && ui.detailSubsystemOptions) {
+    initMultiSelect(ui.detailSubsystemTrigger, ui.detailSubsystemOptions, ui.detailSubsystemCodes);
+  }
   ui.createInfo.addEventListener("change", () => {
     applyInfoFieldState("create");
   });
@@ -242,7 +249,7 @@ export function initHandlers() {
     requirement.parentId = ui.detailParent.value || "";
     requirement.isInfo = ui.detailInfo.checked;
     requirement.requirementType = ui.detailRequirementType.value;
-    requirement.subsystemCodes = getSelectValues(ui.detailSubsystem);
+    requirement.subsystemCodes = getMultiValues(ui.detailSubsystemOptions);
     requirement.subsystemCode = requirement.subsystemCodes[0] || "KP0";
     const detailVerification = getMultiValues(ui.detailVerificationOptions);
     requirement.verificationMethod = detailVerification.length ? detailVerification : ["Analysis"];
@@ -1105,12 +1112,19 @@ function hasUnsavedDetailChanges() {
     isInfo: ui.detailInfo.checked,
     requirementType: ui.detailRequirementType.value,
     verificationMethod: getMultiValues(ui.detailVerificationOptions),
+    subsystemCodes: getMultiValues(ui.detailSubsystemOptions),
     targetQuarter: ui.detailQuarter.value,
     effort: Number(ui.detailEffort.value || 5),
     specClause: ui.detailClause.value.trim(),
     standards: splitList(ui.detailStandards.value),
     documents: splitList(ui.detailDocs.value),
   };
+  const refSubsystems =
+    Array.isArray(requirement.subsystemCodes) && requirement.subsystemCodes.length
+      ? requirement.subsystemCodes
+      : requirement.subsystemCode
+        ? [requirement.subsystemCode]
+        : [];
   const ref = {
     requirement: requirement.requirement || "",
     rationale: requirement.rationale || "",
@@ -1120,6 +1134,7 @@ function hasUnsavedDetailChanges() {
     isInfo: Boolean(requirement.isInfo),
     requirementType: requirement.requirementType || "Functional",
     verificationMethod: normalizeVerificationList(requirement.verificationMethod || ["Analysis"]),
+    subsystemCodes: refSubsystems,
     targetQuarter: requirement.targetQuarter || "Faz1",
     effort: Number(requirement.effort || 5),
     specClause: requirement.specClause || "",
@@ -1134,6 +1149,7 @@ function hasUnsavedDetailChanges() {
   if (current.isInfo !== ref.isInfo) return true;
   if (current.requirementType !== ref.requirementType) return true;
   if (current.verificationMethod !== ref.verificationMethod) return true;
+  if (!listEquals(current.subsystemCodes, ref.subsystemCodes)) return true;
   if (current.targetQuarter !== ref.targetQuarter) return true;
   if (current.effort !== ref.effort) return true;
   if (current.specClause !== ref.specClause) return true;
@@ -1332,11 +1348,6 @@ function parseSubsystemCsv(value) {
     .map((item) => normalizeSystemCode(item || ""))
     .filter(Boolean);
   return codes.length ? codes : ["KP0"];
-}
-
-function getSelectValues(select) {
-  if (!select) return [];
-  return Array.from(select.selectedOptions || []).map((opt) => opt.value).filter(Boolean);
 }
 
 function getVisibleRequirementOrder() {
